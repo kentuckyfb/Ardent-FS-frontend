@@ -44,4 +44,6 @@ A **file search API** that uses **NLP** and **TF-IDF** to find files/folders bas
 ---
 
 
-![image](https://github.com/user-attachments/assets/c92cb71d-8c28-4703-8a35-6f9186dc1ef3)
+![image](https://github.com/user-attachments/assets/d0affe9a-a39d-4fd4-9c8d-53c2cec52145)
+![image](https://github.com/user-attachments/assets/eea48f46-acc7-4c90-9099-385aad0ceaeb)
+
