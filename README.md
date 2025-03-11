@@ -2,7 +2,7 @@
 ---
 
 ### **Project Description**
-A **file search API** that uses **NLP** and **TF-IDF** to find files/folders based on natural language queries. It ranks results by relevance and returns the top 5 matches with relevancy scores.
+A UI for **file search TOOL** that uses **NLP** and **TF-IDF** to find files/folders based on natural language queries. It ranks results by relevance and returns the top 5 matches with relevancy scores.
 
 ---
 
@@ -29,17 +29,10 @@ A **file search API** that uses **NLP** and **TF-IDF** to find files/folders bas
 ---
 
 ### **Example Use Cases**
-- Find invoices: "mullen lowe invoice march opex".
+- Find invoices: "Agency a invoice march opex".
 - Retrieve reports: "clientx report april budget".
 - Search personal files: "vacation photos 2023".
 - Cloud search: "resume pdf" across Google Drive.
-
----
-
-### **Technologies**
-- **Backend**: Python, FastAPI.
-- **NLP**: spaCy, NLTK.
-- **Search**: TF-IDF, Scikit-learn.
 
 ---
 
