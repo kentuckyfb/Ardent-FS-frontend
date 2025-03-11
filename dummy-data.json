@@ -1,0 +1,26 @@
+[
+    {
+      "name": "file1.txt",
+      "path": "/documents/file1.txt",
+      "type": "file",
+      "size": "128 KB",
+      "modified": "2023-10-01",
+      "icon": "📄"
+    },
+    {
+      "name": "folder1",
+      "path": "/documents/folder1",
+      "type": "folder",
+      "size": "2 MB",
+      "modified": "2023-09-28",
+      "icon": "📁"
+    },
+    {
+      "name": "image.png",
+      "path": "/pictures/image.png",
+      "type": "file",
+      "size": "1.2 MB",
+      "modified": "2023-09-25",
+      "icon": "🖼️"
+    }
+  ]
