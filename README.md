@@ -37,6 +37,7 @@ A UI for **file search TOOL** that uses **NLP** and **TF-IDF** to find files/fol
 ---
 
 
-![image](https://github.com/user-attachments/assets/d0affe9a-a39d-4fd4-9c8d-53c2cec52145)
-![image](https://github.com/user-attachments/assets/eea48f46-acc7-4c90-9099-385aad0ceaeb)
+![image](https://github.com/user-attachments/assets/0b5de1f8-8cff-4ac3-b2f0-2d767d6c6f37)
+![image](https://github.com/user-attachments/assets/1061b989-9c81-444a-807a-0b1d47871eec)
+
 
