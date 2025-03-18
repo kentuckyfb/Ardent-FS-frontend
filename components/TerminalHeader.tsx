@@ -12,7 +12,7 @@ export default function TerminalHeader() {
     >
       <div className="flex items-center justify-center mb-2">
         <Terminal size={32} className="mr-2" />
-        <h1 className="text-2xl font-bold tracking-wider">Lost·&·Found</h1>
+        <h1 className="text-2xl font-bold tracking-wider">Ardent·FS</h1>
       </div>
       <motion.p 
         initial={{ opacity: 0 }}
@@ -20,7 +20,7 @@ export default function TerminalHeader() {
         transition={{ delay: 0.5 }}
         className="text-sm opacity-80"
       >
-        Your files may hide, but they can't run!
+        No files left behind
       </motion.p>
     </motion.div>
   );

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Terminal } from 'lucide-react';
+import Settings from '@/components/Settings';
 import TerminalHeader from '../components/TerminalHeader';
 import TerminalOutput from '../components/TerminalOutput';
 import CommandInput from '../components/CommandInput';
@@ -9,11 +10,14 @@ import FilterBar from '../components/FilterBar';
 import StatusBar from '../components/StatusBar';
 import { CommandHistoryEntry, FileResult, SearchResponse } from '../components/types';
 import axios from 'axios';
+import { ApplicationSettings } from '@/components/Settings';
+import { useRootPath } from '../context/RootPathContext';
+import App from 'next/app';
 
 const TerminalFileSearch: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [commandHistory, setCommandHistory] = useState<CommandHistoryEntry[]>([
-    { type: 'system', content: 'Welcome to AiFileSearch v1.0.0' },
+    { type: 'system', content: 'Welcome v1.0.0' },
     { type: 'system', content: 'Type "help" for available commands' },
   ]);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
@@ -21,6 +25,24 @@ const TerminalFileSearch: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
   const [keywords, setKeywords] = useState<string[]>([]);
+  const [appSettings, setAppSettings] = useState<ApplicationSettings>({
+    apiKey: '',
+    theme: 'system',
+    folderPaths: {
+      documents: '',
+      root: '',
+      images: '',
+      downloads: '',
+      other: ''
+    },
+    preferences: {
+      showCodeWhenUsingDataAnalyst: true,
+      showFollowUpSuggestions: true,
+      archiveChats: false
+    },
+    language: 'auto-detect'
+  });
+
 
   // Simulate a blinking cursor
   useEffect(() => {
@@ -30,7 +52,30 @@ const TerminalFileSearch: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const performSearch = async (query: string, filters: string[] = []) => {
+  // Load settings from localStorage when component mounts
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('Settings');
+    if (savedSettings) {
+      try {
+        setAppSettings(JSON.parse(savedSettings));
+      } catch (e) {
+        console.error('Failed to parse saved settings:', e);
+      }
+    }
+  }, []);
+
+  const saveSettings = (newSettings: ApplicationSettings) => {
+    setAppSettings(newSettings);
+    localStorage.setItem('Settings', JSON.stringify(newSettings));
+
+    // Notify user that settings were saved
+    setCommandHistory(prev => [...prev, {
+      type: 'system',
+      content: 'Settings updated successfully!'
+    }]);
+  };
+
+  const performSearch = async (query: string, filters: string[] = [], type: string) => {
     setIsLoading(true);
 
     try {
@@ -44,24 +89,32 @@ const TerminalFileSearch: React.FC = () => {
         }
       ]);
 
-      // Make the API request
-      const response = await fetch("http://127.0.0.1:8000/search", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          query,  // ✅ Include the query
-          directory: "./test_files", // ✅ Ensure this is sent
-        }),
-      });
-
-      if (!response.ok) {
-        console.error("Search failed:", response.statusText);
-        return;
+      let endpoint = '';
+      if (type === 'cmd') {
+        endpoint = '/cmd';
+      } else if (type === 'find') {
+        endpoint = '/find';
+      } else if (type === 'search') {
+        endpoint = '/search';
+      } else {
+        throw new Error(`Unsupported search type: ${type}`);
       }
 
-      const data = await response.json();
+      const rootPath  = appSettings.folderPaths.root;
+      const safeRootPath = rootPath ? rootPath.replace(/\\/g, '\\\\') : '';
+      
+      const response = await axios.post(`http://127.0.0.1:8000${endpoint}`, {
+        query,
+        base_path: safeRootPath, 
+        filters,
+      }, {
+        headers: appSettings.apiKey ? {
+          'Authorization': `Bearer ${appSettings.apiKey}`
+        } : {}
+      });
+
+      const data: SearchResponse = response.data;
+
       // Update keywords state
       setKeywords(data.keywords || []);
 
@@ -112,9 +165,12 @@ const TerminalFileSearch: React.FC = () => {
           type: 'system',
           content: `Available commands:
 search [query] - Search for files
+Find [query] - Search for files
+cmd [query] - Search for files
 filter [type] - Filter by file type (e.g., file, folder)
 clear - Clear terminal history
 keywords - Show detected keywords from last search
+settings - Open settings panel
 help - Show this help message`
         }]);
         setIsTyping(false);
@@ -145,11 +201,31 @@ help - Show this help message`
         setIsTyping(false);
         setSearchQuery('');
       }, 300);
+    } else if (searchQuery.toLowerCase() === 'settings') {
+      // Just add a message to indicate settings can be accessed via button
+      setTimeout(() => {
+        setCommandHistory(prev => [...prev, {
+          type: 'system',
+          content: 'Settings can be accessed by clicking the gear icon in the bottom right corner.'
+        }]);
+        setIsTyping(false);
+        setSearchQuery('');
+      }, 300);
     } else if (searchQuery.toLowerCase().startsWith('search ')) {
       const query = searchQuery.substring(7);
       setIsTyping(false);
       setSearchQuery('');
-      await performSearch(query, activeFilters);
+      await performSearch(query, activeFilters, "search");
+    } else if (searchQuery.toLowerCase().startsWith('find ')) {
+      const query = searchQuery.substring(7);
+      setIsTyping(false);
+      setSearchQuery('');
+      await performSearch(query, activeFilters, "find");
+    } else if (searchQuery.toLowerCase().startsWith('cmd ')) {
+      const query = searchQuery.substring(7);
+      setIsTyping(false);
+      setSearchQuery('');
+      await performSearch(query, activeFilters, "cmd");
     } else if (searchQuery.toLowerCase().startsWith('filter ')) {
       const filter = searchQuery.substring(7).trim();
       setTimeout(() => {
@@ -207,45 +283,70 @@ Type "help" for available commands`
     // If there was a previous search, re-run it with updated filters
     const lastUserSearch = [...commandHistory]
       .reverse()
-      .find(entry => entry.type === 'user' && entry.content.toLowerCase().startsWith('search '));
+      .find(entry =>
+        entry.type === 'user' &&
+        typeof entry.content === 'string' &&
+        (entry.content.toLowerCase().startsWith('search ') ||
+          entry.content.toLowerCase().startsWith('find ') ||
+          entry.content.toLowerCase().startsWith('cmd '))
+      );
 
-    if (lastUserSearch && typeof lastUserSearch.content === 'string') {
-      const query = lastUserSearch.content.substring(7);
-      if (query) {
-        performSearch(query,
-          activeFilters.includes(filter)
+      if (lastUserSearch) {
+        const content = String(lastUserSearch.content).toLowerCase();
+        
+        let type: string = '';
+        let query: string = '';
+      
+        if (content.startsWith('search ')) {
+          type = 'search';
+          query = String(lastUserSearch.content).slice(7).trim();
+        } else if (content.startsWith('find ')) {
+          type = 'find';
+          query = String(lastUserSearch.content).slice(5).trim();
+        } else if (content.startsWith('cmd ')) {
+          type = 'cmd';
+          query = String(lastUserSearch.content).slice(4).trim();
+        }
+      
+        if (query) {
+          const updatedFilters = activeFilters.includes(filter)
             ? activeFilters.filter(f => f !== filter)
-            : [...activeFilters, filter]
-        );
+            : [...activeFilters, filter];
+      
+          performSearch(query, updatedFilters, type);
+        }
       }
-    }
   };
 
   return (
-    <div className="bg-black">
-      <div className="bg-black text-green-400 min-h-screen p-2 md:p-6 font-mono flex flex-col max-w-6xl mx-auto">
-        <TerminalHeader />
+    <div className="bg-black text-green-400 min-h-screen p-2 md:p-6 font-mono flex flex-col max-w-6xl mx-auto">
+      <TerminalHeader />
 
-        <TerminalOutput
-          commandHistory={commandHistory}
-          isTyping={isTyping}
-        />
+      <TerminalOutput
+        commandHistory={commandHistory}
+        isTyping={isTyping}
+      />
 
-        <CommandInput
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          handleCommand={handleCommand}
-          cursorVisible={cursorVisible}
-          isLoading={isLoading}
-        />
+      <CommandInput
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        handleCommand={handleCommand}
+        cursorVisible={cursorVisible}
+        isLoading={isLoading}
+      />
 
-        <FilterBar
-          activeFilters={activeFilters}
-          handleFilterClick={handleFilterClick}
-        />
+      <FilterBar
+        activeFilters={activeFilters}
+        handleFilterClick={handleFilterClick}
+      />
 
-        <StatusBar isLoading={isLoading} />
-      </div>
+      <StatusBar isLoading={isLoading} />
+
+      {/* Settings Component */}
+      <Settings
+        onSave={saveSettings}
+        initialSettings={appSettings}
+      />
     </div>
   );
 };

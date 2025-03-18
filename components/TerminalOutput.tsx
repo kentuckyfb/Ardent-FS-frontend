@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Folder, File, FileText, ChevronRight } from 'lucide-react';
 import { CommandHistoryEntry, FileResult } from './types';
+import { resourceLimits } from 'worker_threads';
 
 interface TerminalOutputProps {
   commandHistory: CommandHistoryEntry[];
@@ -18,20 +19,25 @@ const TerminalOutput: React.FC<TerminalOutputProps> = ({ commandHistory, isTypin
     }
   };
 
+
+
   const getFileIcon = (result: FileResult) => {
+    if (!result || !result.name) {
+      return <File className="mr-2" size={16} />;
+    }
     if (result.icon) {
       return <span className="mr-2 text-lg">{result.icon}</span>;
     }
-    
+
     if (result.type === 'folder') {
       return <Folder className="mr-2 text-yellow-400" size={16} />;
     } else {
-      const extension = result.name.split('.').pop()?.toLowerCase();
-      switch(extension) {
+      const extension = typeof result.name === 'string' ? result.name.split('.').pop()?.toLowerCase() : '';
+      switch (extension) {
         case 'json': return <File className="mr-2 text-yellow-400" size={16} />;
         case 'js':
         case 'ts':
-        case 'tsx': 
+        case 'tsx':
         case 'jsx': return <FileText className="mr-2 text-blue-400" size={16} />;
         case 'md': return <FileText className="mr-2 text-green-400" size={16} />;
         case 'txt': return <FileText className="mr-2 text-gray-400" size={16} />;
@@ -65,27 +71,33 @@ const TerminalOutput: React.FC<TerminalOutputProps> = ({ commandHistory, isTypin
                     <div className="font-bold text-gray-300">Name</div>
                     <div className="font-bold text-gray-300 text-right">Size</div>
                   </div>
-                  {entry.content.map((result, fileIndex) => (
-                    <motion.div 
-                      key={fileIndex}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: fileIndex * 0.07 }}
-                      className="grid grid-cols-[auto_1fr_auto] gap-x-4 items-center py-1 px-2 hover:bg-gray-800 rounded cursor-pointer group"
-                    >
-                      <div className="flex items-center">
-                        {getFileIcon(result)}
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <div className="text-white truncate">{result.name}</div>
-                        <div className="text-gray-500 text-xs truncate">{result.path}</div>
-                      </div>
-                      <div className="flex flex-col items-end">
-                        <div className="text-gray-400 text-xs">{result.size}</div>
-                        <div className="text-gray-500 text-xs">{formatDate(result.modified)}</div>
-                      </div>
-                    </motion.div>
-                  ))}
+                  {entry.content.map((result, fileIndex) => {
+                    const path = result.path;
+                    const name = result.name; // extract file name from path
+                    return (
+                      <motion.div
+                        key={fileIndex}
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: fileIndex * 0.07 }}
+                        className="grid grid-cols-[auto_1fr_auto] gap-x-4 items-center py-1 px-2 hover:bg-gray-800 rounded cursor-pointer group"
+                      >
+                        <div className="flex items-center">
+                          {getFileIcon({ name } as FileResult)}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <div className="text-white truncate">{name}</div>
+                          <div className="text-gray-500 text-xs truncate">{path}</div>
+                          {result.matches && result.matches.length > 0 && (
+                            <div className="text-xs text-purple-400 mt-1">Match: {result.matches[0]}</div>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end">
+                          {/* Optional placeholder */}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
                 </>
               ) : (
                 <div className="text-gray-400 italic">No results found</div>
@@ -97,14 +109,14 @@ const TerminalOutput: React.FC<TerminalOutputProps> = ({ commandHistory, isTypin
               {'isLoading' in entry && entry.isLoading ? (
                 <div className="flex items-center">
                   <span className={entry.isError ? 'text-red-400' : ''}>{entry.content}</span>
-                  <motion.div 
-                    animate={{ 
+                  <motion.div
+                    animate={{
                       opacity: [0.5, 1, 0.5],
                       scale: [0.98, 1.02, 0.98]
                     }}
-                    transition={{ 
-                      repeat: Infinity, 
-                      duration: 1.5 
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5
                     }}
                     className="ml-2 flex space-x-1"
                   >
@@ -123,14 +135,14 @@ const TerminalOutput: React.FC<TerminalOutputProps> = ({ commandHistory, isTypin
       {isTyping && (
         <div className="flex">
           <span className="text-green-400 mr-2">system:</span>
-          <motion.div 
-            animate={{ 
+          <motion.div
+            animate={{
               opacity: [0.5, 1, 0.5],
               scale: [0.98, 1.02, 0.98]
             }}
-            transition={{ 
-              repeat: Infinity, 
-              duration: 1.5 
+            transition={{
+              repeat: Infinity,
+              duration: 1.5
             }}
             className="flex space-x-1"
           >

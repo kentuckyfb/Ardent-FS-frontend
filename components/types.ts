@@ -11,12 +11,13 @@ export type SystemEntry = {
   };
   
   export type FileResult = {
-    name: string;
+    name: string | string[]; 
     path: string;
     type: string;
     size: string;
     modified: string;
     icon: string;
+    matches : string;
   };
   
   export type ResultsEntry = {
@@ -32,5 +33,10 @@ export type SystemEntry = {
     results: FileResult[];
   };
 
+  
 
+  
+
+
+  
   export type CommandHistoryEntry = SystemEntry | UserEntry | ResultsEntry;
